@@ -11,11 +11,27 @@ var User = new Schema({
         type: String,
         default: ''
     },
+    password: {
+        type: String,
+        required: true
+    },
     admin: {
         type: Boolean,
         required: true,
         default: false
-    }
+    },
+    email: {
+        type : String, 
+        required : true,
+        unique: true
+    },
+    telnum: {
+        type: String,
+        required: true
+    },
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
+    facebookId: String
 });
 
 User.plugin(passportLocalMongoose);
