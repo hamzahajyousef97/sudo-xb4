@@ -89,7 +89,6 @@ favWinterRouter.route('/:winterId')
                 favWinter.winters.push({ "_id": req.params.winterId })
                 favWinter.save()
                 .then((favWinter) => {
-                    console.log('favWinter created', favWinter);
                     res.statusCode = 200;
                     res.setHeader('Content-Type', 'application/json');
                     res.json(favWinter);
@@ -107,7 +106,6 @@ favWinterRouter.route('/:winterId')
                 favWinter.winters.push({ "_id": req.params.winterId })
                 favWinter.save()
                 .then((favWinter) => {
-                    console.log('favWinter Added!');
                     res.statusCode = 200;
                     res.setHeader('Content-Type', 'application/json');
                     res.json(favWinter);
@@ -146,7 +144,6 @@ favWinterRouter.route('/:winterId')
                 .populate('user')
                 .populate('winters')
                 .then((favWinter) => {
-                    console.log('Your favWinter Deleted!', favWinter);
                     res.statusCode = 200;
                     res.setHeader('Content-Type', 'application/json');
                     res.json(favWinter);

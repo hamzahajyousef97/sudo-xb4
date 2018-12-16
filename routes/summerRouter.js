@@ -47,14 +47,14 @@ summerRouter.route('/')
     .populate('comments.author')
     .populate('likes.author')
     .then((summers) => {
-        for (var i = (summers.length -1); i >= 0; i--) {
-            Summers.findByIdAndUpdate(summers[i]._id,
-                { $inc: { views: 1 } },
-                { new: true })
-                .then((summer) => {
-                    summer.save()
-                })
-        }
+//        for (var i = (summers.length -1); i >= 0; i--) {
+//            Summers.findByIdAndUpdate(summers[i]._id,
+//                { $inc: { views: 1 } },
+//                { new: true })
+//                .then((summer) => {
+//                    summer.save()
+//                })
+//        }
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
         res.json(summers);
@@ -65,7 +65,6 @@ summerRouter.route('/')
 .post(cors.corsWithOptions, authenticate.verifyUser,authenticate.verifyAdmin, upload.single('imageFile'), (req,res,next) => {
     Summers.create(req.body)
     .then((summer) => {
-        console.log('summer Created', summer);
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
         res.json(summer);
@@ -163,7 +162,9 @@ summerRouter.route('/:summerId/comments')
 })
 
 .post(cors.corsWithOptions, authenticate.verifyUser, (req,res,next) => {
-    Summers.findById(req.params.summerId)
+    Summers.findByIdAndUpdate(req.params.summerId,
+        { $inc: { commentNum: 1 } },
+        { new: true })
     .then((summer) => {
         if (summer != null) {
             req.body.author = req.user._id;
@@ -294,37 +295,45 @@ summerRouter.route('/:summerId/comments/:commentId')
     .catch((err) => next(err));
 })
 
-.delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req,res,next) => {
-    Summers.findById(req.params.summerId)
+.delete(cors.corsWithOptions, authenticate.verifyUser, (req,res,next) => {
+    Summers.findByIdAndUpdate(req.params.summerId,
+        { $inc: { commentNum: -1 } },
+        { new: true })
     .then((summer) => {
-        if (summer != null && summer.comments.id(req.params.commentId) != null) {
-            summer.comments.id(req.params.commentId).remove();
-            summer.save()
-            .then((summer) => {
-                Summers.findById(summer._id)
-                .populate('comments.author')
-                .populate('likes.author')
+        if (req.user.admin === true || summer.comments.id(req.params.commentId).author._id.equals(req.user._id)) {
+            if (summer != null && summer.comments.id(req.params.commentId) != null) {
+                summer.comments.id(req.params.commentId).remove();
+                summer.save()
                 .then((summer) => {
-                    res.statusCode = 200;
-                    res.setHeader('Content-Type', 'application/json');
-                    res.json(summer);
-                })
-            }, (err) => next(err));
-        }
-        else if (summer == null) {
-            err = new Error('summer ' + req.params.summerId + ' not found ');
-            err.status = 404;
-            return next(err);
+                    Summers.findById(summer._id)
+                    .populate('comments.author')
+                    .populate('likes.author')
+                    .then((summer) => {
+                        res.statusCode = 200;
+                        res.setHeader('Content-Type', 'application/json');
+                        res.json(summer);
+                    })
+                }, (err) => next(err));
+            }
+            else if (summer == null) {
+                err = new Error('summer ' + req.params.summerId + ' not found ');
+                err.status = 404;
+                return next(err);
+            }
+            else {
+                err = new Error('Comment ' + req.params.commentId + ' not found ');
+                err.status = 404;
+                return next(err);  
+            }
         }
         else {
-            err = new Error('Comment ' + req.params.commentId + ' not found ');
-            err.status = 404;
-            return next(err);  
+            var err = new Error('You are not authorized to delete this comment!');
+            err.status = 403;
+            next(err);
         }
     }, (err) => next(err))
     .catch((err) => next(err));
 });
-
 
 
 summerRouter.route('/:summerId/likes')

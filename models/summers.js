@@ -60,10 +60,6 @@ const summerSchema = new Schema({
         type: String,
         required: true
     },
-    age: {
-        type: String,
-        required: true
-    },
     clothEN: {
         type: String,
         required: true
@@ -85,6 +81,25 @@ const summerSchema = new Schema({
         required: true
     },
     views: {
+        type: Number,
+        default: 0
+    },
+    small: {
+        type: Boolean,
+        required: true,
+        default: false
+    },
+    medium: {
+        type: Boolean,
+        required: true,
+        default: false
+    },
+    large: {
+        type: Boolean,
+        required: true,
+        default: false
+    },
+    commentNum: {
         type: Number,
         default: 0
     },

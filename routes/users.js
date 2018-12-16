@@ -5,15 +5,13 @@ var passport = require('passport');
 var authenticate = require('../authenticate');
 const cors = require('./cors');
 
-var userRouter = express.Router();
-userRouter.use(BodyParser.json());
+var router = express.Router();
+router.use(BodyParser.json());
 
+/* GET users listing. */
+router.options('*', cors.corsWithOptions, (req, res) => { res.sendStatus(200); })
 
-
-
-userRouter.route('/')
-.options(cors.corsWithOptions, (req, res) => { res.sendStatus(200); })
-.get(cors.corsWithOptions,  authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
+router.get('/', cors.corsWithOptions,  authenticate.verifyUser, authenticate.verifyAdmin, function(req, res, next) {
   User.find({})
   .then((user) => {
       res.statusCode = 200;
@@ -23,9 +21,7 @@ userRouter.route('/')
   .catch((err) => next(err));
 });
 
-
-userRouter.route('/signup')
-.post(cors.corsWithOptions, (req,res,next) => {
+router.post('/signup', cors.corsWithOptions, (req,res,next) => {
   User.register(new User(
     {
         firstname: req.body.firstname , 
@@ -41,7 +37,6 @@ userRouter.route('/signup')
       res.statusCode = 500;
       res.setHeader('Content-Type', 'application/json');
       res.json({err: err});
-      console.log(err)
     }
     else {
       if (req.body.firstname)
@@ -65,10 +60,8 @@ userRouter.route('/signup')
   });
 });
 
+router.post('/login', cors.corsWithOptions, (req, res,next) => {
 
-userRouter.route('/login')
-.options(cors.corsWithOptions, (req, res) => { res.sendStatus(200); })
-.post(cors.corsWithOptions, (req, res,next) => {  
   passport.authenticate('local', (err, user, info) => {
     if (err) {
       return next(err);
@@ -86,17 +79,15 @@ userRouter.route('/login')
       }
 
       var token = authenticate.getToken({_id: req.user._id});
+      var _id = req.user._id;
       res.statusCode = 200;
       res.setHeader('Content-Type', 'application/json');
-      res.json({success: true, status: 'Login Seccessful!', token: token});
+      res.json({success: true, status: 'Login Seccessful!', token: token, _id: _id});
     });
   }) (req, res, next);
 });
 
-
-userRouter.route('/loginAdmin')
-.options(cors.corsWithOptions, (req, res) => { res.sendStatus(200); })
-.post(cors.corsWithOptions, (req, res,next) => {  
+router.post('/loginAdmin', cors.corsWithOptions, (req,res,next) => {
   passport.authenticate('local', (err, user, info) => {
     if (err) {
       return next(err);
@@ -129,8 +120,7 @@ userRouter.route('/loginAdmin')
   }) (req, res, next);
 });
 
-userRouter.route('/logout')
-.get(cors.corsWithOptions,  (req, res) => {
+router.get('/logout', cors.corsWithOptions,  (req, res) => {
   if (req.session) {
     req.session.destroy();
     res.clearCookie('session-id');
@@ -143,127 +133,16 @@ userRouter.route('/logout')
   }
 });
 
-userRouter.route('/:userId')
-.options(cors.corsWithOptions, (req, res) => { res.sendStatus(200); })
-.get(cors.cors, authenticate.verifyUser, (req, res, next) => {
-  User.findById(req.params.userId)
-    .then((user) => {
-      if(req.user.admin === true || JSON.stringify(user._id) == JSON.stringify(req.user._id)) {
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/json');
-        res.json(user);
-      }
-      else {
-        var err = new Error('You are not authorized to do this operation!');
-        err.status = 403;
-        next(err);
-      }
-    }, (err) => next(err))
-    .catch((err) => next(err));
-  })
-
-  .post(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
-     res.statusCode = 403;
-     res.end('POST operation not supported on /users/'
-        + req.params.userId);
-  })
-  .put( cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
-    User.findById(req.params.userId)
-      .then((user) => {
-        if (req.user.admin === true || JSON.stringify(user._id) == JSON.stringify(req.user._id)) {
-          if (user != null) {
-            if (req.body.firstname) {
-              user.firstname = req.body.firstname;
-            }
-            if (req.body.lastname) {
-              user.lastname = req.body.lastname;
-            }
-            if (req.body.username) {
-              user.username = req.body.username;
-            }
-            if (req.body.password) {
-              user.password = req.body.password;
-            }
-            if (req.body.email) {
-              user.email = req.body.email;
-            }
-            if (req.body.telnum) {
-              user.telnum = req.body.telnum;
-            }
-            // if (req.body.admin) {
-            //   user.admin = req.body.admin;
-            // }
-            user.save()
-            .then((user) => {
-              console.log('user updated: ', user);
-              res.statusCode = 200;
-              res.setHeader('Content-Type', 'application/json');
-              res.json(user);
-            }, (err) => next(err))
-          }
-          else {
-            err = new Error('User ' + req.params.userId + ' not found ');
-            err.status = 404;
-            return next(err);  
-          }
-        }
-        else {
-          var err = new Error('You are not authorized to update this User!');
-          err.status = 403;
-          next(err);
-        }
-
-      }, (err) => next(err))
-      .catch((err) => next(err));
-  })
-
-  .delete(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
-    User.findById(req.params.userId)
-    .then((user) => {
-      if (req.user.admin === true || JSON.stringify(user._id) == JSON.stringify(req.user._id)) {
-        if (user != null) {
-          user.remove();
-          user.save()
-          .then((user) => {
-            User.find({})
-            .populate('comments.author')
-            .then((user) => {
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'application/json');
-                res.json(user);
-            })
-          }, (err) => next(err));
-        }
-        else {
-          err = new Error('User ' + req.params.userId + ' not found ');
-          err.status = 404;
-          return next(err);  
-        }
-      }
-      else {
-        var err = new Error('You are not authorized to update this User!');
-        err.status = 403;
-        next(err);
-      }
-
-    }, (err) => next(err))
-    .catch((err) => next(err));
-});
-
-
-
-userRouter.route('/facebook/token')
-.get(passport.authenticate('facebook-token'), (req, res) => {
+router.get('/facebook/token', passport.authenticate('facebook-token'), (req, res) => {
   if (req.user) {
     var token = authenticate.getToken({_id: req.user._id});
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
     res.json({success: true, token: token, status: 'You are Successfully logged in!'});
   }
-})
+});
 
-userRouter.route('/checkJWTToken')
-.get(cors.corsWithOptions, (req, res) => {
+router.get('/checkJWTToken', cors.corsWithOptions, (req, res) => {
   passport.authenticate('jwt', { session: false}, (err, user, info) => {
     if (err) {
       return next(err);
@@ -279,7 +158,112 @@ userRouter.route('/checkJWTToken')
       return res.json({status: 'JWT Valid!', success: true, user: user});
     }
   }) (req, res);
-})
+});
+
+router.get('/:username', authenticate.verifyUser, cors.corsWithOptions, (req,res,next) => {
+   User.findOne({"username": req.params.username})
+    .then((user) => {
+      if(req.user.admin === true || JSON.stringify(user._id) == JSON.stringify(req.user._id)) {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(user);
+      }
+      else {
+        var err = new Error('You are not authorized to do this operation!');
+        err.status = 403;
+        next(err);
+      }
+    }, (err) => next(err))
+    .catch((err) => next(err));
+});
+
+router.post('/:userId', authenticate.verifyUser, cors.corsWithOptions, (req,res,next) => {
+  res.statusCode = 403;
+  res.end('POST operation not supported on /users/' + req.params.userId);
+});
+
+router.put('/:userId', authenticate.verifyUser, cors.corsWithOptions, (req,res,next) => {
+  User.findById(req.params.userId)
+  .then((user) => {
+    if (req.user.admin === true || JSON.stringify(user._id) == JSON.stringify(req.user._id)) {
+      if (user != null) {
+        if (req.body.firstname) {
+          user.firstname = req.body.firstname;
+        }
+        if (req.body.lastname) {
+          user.lastname = req.body.lastname;
+        }
+        if (req.body.username) {
+          user.username = req.body.username;
+        }
+        if (req.body.password) {
+          user.password = req.body.password;
+        }
+        if (req.body.email) {
+          user.email = req.body.email;
+        }
+        if (req.body.telnum) {
+          user.telnum = req.body.telnum;
+        }
+        // if (req.body.admin) {
+        //   user.admin = req.body.admin;
+        // }
+        user.save()
+        .then((user) => {
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/json');
+          res.json(user);
+        }, (err) => next(err))
+      }
+      else {
+        err = new Error('User ' + req.params.userId + ' not found ');
+        err.status = 404;
+        return next(err);  
+      }
+    }
+    else {
+      var err = new Error('You are not authorized to update this User!');
+      err.status = 403;
+      next(err);
+    }
+
+  }, (err) => next(err))
+  .catch((err) => next(err));
+});
+
+router.delete('/:userId', authenticate.verifyUser, cors.corsWithOptions, (req,res,next) => {
+  User.findById(req.params.userId)
+  .then((user) => {
+    if (req.user.admin === true || JSON.stringify(user._id) == JSON.stringify(req.user._id)) {
+      if (user != null) {
+        user.remove();
+        user.save()
+        .then((user) => {
+          User.find({})
+          .populate('comments.author')
+          .then((user) => {
+              res.statusCode = 200;
+              res.setHeader('Content-Type', 'application/json');
+              res.json(user);
+          })
+        }, (err) => next(err));
+      }
+      else {
+        err = new Error('User ' + req.params.userId + ' not found ');
+        err.status = 404;
+        return next(err);  
+      }
+    }
+    else {
+      var err = new Error('You are not authorized to update this User!');
+      err.status = 403;
+      next(err);
+    }
+
+  }, (err) => next(err))
+  .catch((err) => next(err));
+});
 
 
-module.exports = userRouter;
+module.exports = router;
+

@@ -89,7 +89,6 @@ favSummerRouter.route('/:summerId')
                 favSummer.summers.push({ "_id": req.params.summerId })
                 favSummer.save()
                 .then((favSummer) => {
-                    console.log('favSummer created', favSummer);
                     res.statusCode = 200;
                     res.setHeader('Content-Type', 'application/json');
                     res.json(favSummer);
@@ -107,7 +106,6 @@ favSummerRouter.route('/:summerId')
                 favSummer.summers.push({ "_id": req.params.summerId })
                 favSummer.save()
                 .then((favSummer) => {
-                    console.log('favSummer Added!');
                     res.statusCode = 200;
                     res.setHeader('Content-Type', 'application/json');
                     res.json(favSummer);
@@ -146,7 +144,6 @@ favSummerRouter.route('/:summerId')
                 .populate('user')
                 .populate('summers')
                 .then((favSummer) => {
-                    console.log('Your favSummer Deleted!', favSummer);
                     res.statusCode = 200;
                     res.setHeader('Content-Type', 'application/json');
                     res.json(favSummer);
