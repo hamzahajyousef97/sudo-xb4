@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 
-const whitelist = ['https://xbfour.com', 'https://xb4-control.firebaseapp.com', 'https://xb-four.firebaseapp.com'];
+const whitelist = ['https://xbfour.com', 'https://www.xbfour.com', 'https://xb4-control.firebaseapp.com', 'https://server.xbfour.com' , 'https://xb-four.firebaseapp.com'];
 var corsOptionsDelegate = (req, callback) => {
     var corsOptions;
 
